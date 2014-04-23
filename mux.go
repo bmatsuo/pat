@@ -2,6 +2,7 @@
 package pat
 
 import (
+	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
@@ -178,8 +179,16 @@ func (p *PatternServeMux) Add(meth, pat string, h http.Handler) {
 
 	n := len(pat)
 	if n > 0 && pat[n-1] == '/' {
-		p.Add(meth, pat[:n-1], http.RedirectHandler(pat, http.StatusMovedPermanently))
+		p.Add(meth, pat[:n-1], slashRedirectHandler(http.StatusMovedPermanently))
 	}
+}
+
+func slashRedirectHandler(code int) http.Handler {
+	return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+		slashPath := req.URL.Path + "/"
+		http.Redirect(resp, req, slashPath, code)
+		fmt.Fprintln(resp, `<a href="%s">%s</a>.`, slashPath, http.StatusText(code))
+	})
 }
 
 // Tail returns the trailing string in path after the final slash for a pat ending with a slash.

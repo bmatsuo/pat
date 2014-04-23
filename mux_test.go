@@ -180,16 +180,20 @@ func TestPatOnlyUserParams(t *testing.T) {
 }
 
 func TestPatImplicitRedirect(t *testing.T) {
-	p := New()
-	p.Get("/foo/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
-
-	r, err := http.NewRequest("GET", "/foo", nil)
-	if err != nil {
-		t.Fatal(err)
+	nopHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
+	req := func() *http.Request {
+		r, err := http.NewRequest("GET", "/foo", nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return r
 	}
 
+	p := New()
+	p.Get("/foo/", nopHandler)
+
 	res := httptest.NewRecorder()
-	p.ServeHTTP(res, r)
+	p.ServeHTTP(res, req())
 
 	if res.Code != 301 {
 		t.Errorf("expected Code 301, was %d", res.Code)
@@ -200,20 +204,26 @@ func TestPatImplicitRedirect(t *testing.T) {
 	}
 
 	p = New()
-	p.Get("/foo", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
-	p.Get("/foo/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
-
-	r, err = http.NewRequest("GET", "/foo", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
+	p.Get("/foo", nopHandler)
+	p.Get("/foo/", nopHandler)
 
 	res = httptest.NewRecorder()
 	res.Code = 200
-	p.ServeHTTP(res, r)
+	p.ServeHTTP(res, req())
 
 	if res.Code != 200 {
 		t.Errorf("expected Code 200, was %d", res.Code)
+	}
+
+	mux := New()
+	mux.Add("GET", "/:foo/", nopHandler)
+	res = httptest.NewRecorder()
+	mux.ServeHTTP(res, req())
+	if res.Code != 301 {
+		t.Errorf("expected Code 301, was %d", res.Code)
+	}
+	if loc := res.Header().Get("Location"); loc != "/foo/" {
+		t.Errorf("expected %q, got %q", "/foo/", loc)
 	}
 }
 
