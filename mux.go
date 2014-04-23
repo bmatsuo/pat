@@ -2,7 +2,6 @@
 package pat
 
 import (
-	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
@@ -187,7 +186,6 @@ func slashRedirectHandler(code int) http.Handler {
 	return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
 		slashPath := req.URL.Path + "/"
 		http.Redirect(resp, req, slashPath, code)
-		fmt.Fprintln(resp, `<a href="%s">%s</a>.`, slashPath, http.StatusText(code))
 	})
 }
 
